@@ -164,18 +164,26 @@ class ReportRepository {
     );
   }
 
-  Future<List<Map<String, Object?>>> inventoryReport() =>
-      _database.raw.rawQuery('''SELECT p.sku, p.name_ar, w.name_ar AS warehouse_name, ib.quantity_minor, ib.average_cost_minor,
-          (ib.quantity_minor * ib.average_cost_minor) AS inventory_value_minor
+  Future<List<Map<String, Object?>>> inventoryReport({
+    String currencyCode = 'YER',
+  }) => _database.raw.rawQuery(
+    '''SELECT p.sku, p.name_ar, w.name_ar AS warehouse_name, ib.quantity_minor, ib.average_cost_minor,
+          (ib.quantity_minor * ib.average_cost_minor) AS inventory_value_minor,
+          p.purchase_currency_code AS currency_code
           FROM inventory_balances ib JOIN products p ON p.id = ib.product_id JOIN warehouses w ON w.id = ib.warehouse_id
-          ORDER BY p.name_ar''');
+          WHERE p.purchase_currency_code = ? ORDER BY p.name_ar''',
+    [currencyCode],
+  );
 
-  Future<List<Map<String, Object?>>> trialBalance() => _database.raw.rawQuery(
-    '''SELECT a.code, a.name_ar,
+  Future<List<Map<String, Object?>>> trialBalance({
+    String currencyCode = 'YER',
+  }) => _database.raw.rawQuery(
+    '''SELECT a.code, a.name_ar, jl.currency_code,
           COALESCE(SUM(jl.debit_minor),0) AS debit_minor, COALESCE(SUM(jl.credit_minor),0) AS credit_minor
-          FROM accounts a LEFT JOIN journal_lines jl ON jl.account_id = a.id
+          FROM accounts a LEFT JOIN journal_lines jl ON jl.account_id = a.id AND jl.currency_code = ?
           LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'posted'
-          GROUP BY a.id HAVING debit_minor <> 0 OR credit_minor <> 0 ORDER BY a.code''',
+          GROUP BY a.id, jl.currency_code HAVING debit_minor <> 0 OR credit_minor <> 0 ORDER BY a.code''',
+    [currencyCode],
   );
 
   Future<List<Map<String, Object?>>> auditLog({int limit = 100}) =>

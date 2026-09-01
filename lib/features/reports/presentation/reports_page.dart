@@ -49,8 +49,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 to: _range.to,
                 currencyCode: _currency,
               ),
-      'inventory' => repository.inventoryReport(),
-      'trial' => repository.trialBalance(),
+      'inventory' => repository.inventoryReport(currencyCode: _currency),
+      'trial' => repository.trialBalance(currencyCode: _currency),
       _ => repository.auditLog(),
     };
     return FutureBuilder<List<Map<String, Object?>>>(
