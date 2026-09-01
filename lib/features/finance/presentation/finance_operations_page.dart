@@ -36,8 +36,7 @@ class _FinanceOperationsPageState extends ConsumerState<FinanceOperationsPage> {
         children: [
           ErpPageHeader(
             title: 'المصروفات والإيرادات',
-            subtitle:
-                'تُرحّل العمليات المعتمدة إلى الصندوق والقيد المحاسبي تلقائياً ولا تُحذف بعد الترحيل.',
+            subtitle: 'تُرحّل العمليات المعتمدة إلى الصندوق والقيد المحاسبي تلقائياً ولا تُحذف بعد الترحيل.',
             actions: [
               FilledButton.icon(
                 onPressed: _create,

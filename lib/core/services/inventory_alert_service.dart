@@ -77,12 +77,11 @@ class InventoryAlertService {
     return inserted;
   }
 
-  Future<List<Map<String, Object?>>> unread({
-    int limit = 100,
-  }) => _database.raw.rawQuery(
-    'SELECT * FROM local_notifications WHERE read_at IS NULL ORDER BY scheduled_at DESC LIMIT ?',
-    [limit],
-  );
+  Future<List<Map<String, Object?>>> unread({int limit = 100}) =>
+      _database.raw.rawQuery(
+        'SELECT * FROM local_notifications WHERE read_at IS NULL ORDER BY scheduled_at DESC LIMIT ?',
+        [limit],
+      );
 
   Future<void> markRead(String id) async {
     await _database.raw.update(

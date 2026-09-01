@@ -74,8 +74,7 @@ class _DeveloperPanelPageState extends ConsumerState<DeveloperPanelPage> {
                       controller: customer,
                       decoration: const InputDecoration(
                         labelText: 'اسم العميل *',
-                        helperText:
-                            'اكتب الاسم المطابق في إدارة العملاء لجلب المعرّف تلقائيًا',
+                        helperText: 'اكتب الاسم المطابق في إدارة العملاء لجلب المعرّف تلقائيًا',
                       ),
                       onChanged: (value) async {
                         final name = value.trim();
@@ -226,8 +225,7 @@ class _DeveloperPanelPageState extends ConsumerState<DeveloperPanelPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'إيقاف الترخيص المحلي',
-      message:
-          'سيمنع هذا العمليات المدفوعة الجديدة على هذا التثبيت فقط، ولن يحذف بيانات العميل.',
+      message: 'سيمنع هذا العمليات المدفوعة الجديدة على هذا التثبيت فقط، ولن يحذف بيانات العميل.',
       confirmLabel: 'إيقاف الترخيص',
     );
     if (!confirmed) return;

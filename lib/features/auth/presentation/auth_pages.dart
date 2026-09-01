@@ -104,9 +104,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
     password.dispose();
     if (granted == true && mounted) {
-      await Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => const DeveloperPanelPage()));
+      await Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const DeveloperPanelPage()));
     }
   }
 
@@ -244,9 +243,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             logoPath: profile?.logoPath,
                             size: 78,
                             radius: 18,
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.surface,
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .surface,
                           ),
                         ),
                       ),

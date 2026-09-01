@@ -63,16 +63,14 @@ class LicenseService {
     if (rows.isEmpty) {
       return const LicenseStatus(
         state: 'activation_required',
-        message:
-            'التفعيل مطلوب للعمليات المدفوعة. تبقى البيانات والنسخ الاحتياطي والتقارير متاحة للقراءة.',
+        message: 'التفعيل مطلوب للعمليات المدفوعة. تبقى البيانات والنسخ الاحتياطي والتقارير متاحة للقراءة.',
       );
     }
     final row = rows.first;
     if (row['status'] != 'active') {
       return LicenseStatus(
         state: row['status'] as String,
-        message:
-            'الترخيص غير نشط. تتوفر القراءة والنسخ الاحتياطي والتواصل مع الدعم.',
+        message: 'الترخيص غير نشط. تتوفر القراءة والنسخ الاحتياطي والتواصل مع الدعم.',
       );
     }
     final payload =
@@ -95,8 +93,7 @@ class LicenseService {
       );
       return const LicenseStatus(
         state: 'expired',
-        message:
-            'انتهت صلاحية الترخيص. تتوفر القراءة والتقارير والنسخ الاحتياطي فقط.',
+        message: 'انتهت صلاحية الترخيص. تتوفر القراءة والتقارير والنسخ الاحتياطي فقط.',
       );
     }
     final trustedRaw = row['last_trusted_at'] as String?;
@@ -106,8 +103,7 @@ class LicenseService {
         )) {
       return const LicenseStatus(
         state: 'time_warning',
-        message:
-            'تم اكتشاف رجوع غير معتاد في وقت الجهاز. العمليات الجديدة معلقة حتى تصحيح الوقت أو التواصل مع الدعم.',
+        message: 'تم اكتشاف رجوع غير معتاد في وقت الجهاز. العمليات الجديدة معلقة حتى تصحيح الوقت أو التواصل مع الدعم.',
       );
     }
     await _database.raw.update(

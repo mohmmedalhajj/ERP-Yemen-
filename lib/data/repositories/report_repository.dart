@@ -164,13 +164,11 @@ class ReportRepository {
     );
   }
 
-  Future<List<Map<String, Object?>>>
-  inventoryReport() => _database.raw.rawQuery(
-    '''SELECT p.sku, p.name_ar, w.name_ar AS warehouse_name, ib.quantity_minor, ib.average_cost_minor,
+  Future<List<Map<String, Object?>>> inventoryReport() =>
+      _database.raw.rawQuery('''SELECT p.sku, p.name_ar, w.name_ar AS warehouse_name, ib.quantity_minor, ib.average_cost_minor,
           (ib.quantity_minor * ib.average_cost_minor) AS inventory_value_minor
           FROM inventory_balances ib JOIN products p ON p.id = ib.product_id JOIN warehouses w ON w.id = ib.warehouse_id
-          ORDER BY p.name_ar''',
-  );
+          ORDER BY p.name_ar''');
 
   Future<List<Map<String, Object?>>> trialBalance() => _database.raw.rawQuery(
     '''SELECT a.code, a.name_ar,
@@ -180,13 +178,12 @@ class ReportRepository {
           GROUP BY a.id HAVING debit_minor <> 0 OR credit_minor <> 0 ORDER BY a.code''',
   );
 
-  Future<List<Map<String, Object?>>> auditLog({
-    int limit = 100,
-  }) => _database.raw.rawQuery(
-    '''SELECT a.*, u.display_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id
+  Future<List<Map<String, Object?>>> auditLog({int limit = 100}) =>
+      _database.raw.rawQuery(
+        '''SELECT a.*, u.display_name FROM audit_logs a LEFT JOIN users u ON u.id = a.user_id
         ORDER BY a.created_at DESC LIMIT ?''',
-    [limit],
-  );
+        [limit],
+      );
 
   Future<int> _singleInt(String sql, List<Object?> args) async {
     final rows = await _database.raw.rawQuery(sql, args);

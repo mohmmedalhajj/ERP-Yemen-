@@ -35,8 +35,7 @@ class _AdministrationPageState extends ConsumerState<AdministrationPage>
     children: [
       ErpPageHeader(
         title: 'المستخدمون والصلاحيات',
-        subtitle:
-            'تُطبق الصلاحيات في الواجهة وخدمات الأعمال، وتسجل جميع تغييرات الإدارة محلياً.',
+        subtitle: 'تُطبق الصلاحيات في الواجهة وخدمات الأعمال، وتسجل جميع تغييرات الإدارة محلياً.',
       ),
       TabBar(
         controller: _tabs,

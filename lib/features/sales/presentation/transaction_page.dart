@@ -7,7 +7,9 @@ import '../../../core/services/providers.dart';
 import '../../../domain/services/invoice_posting_service.dart';
 import '../../../core/services/invoice_document_service.dart';
 import '../../../core/services/thermal_printer_service.dart';
+
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+
 import '../../inventory/presentation/barcode_scanner_page.dart';
 import '../../../shared/widgets/app_scaffold.dart';
 import '../../../shared/widgets/erp_ui.dart';

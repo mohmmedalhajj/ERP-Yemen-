@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/auth/security.dart';
 import '../../../core/localization/app_strings.dart';
+import '../../../core/models/date_range_filter.dart';
 import '../../../core/models/money.dart';
 import '../../../core/services/providers.dart';
 import '../../../data/repositories/master_repository.dart';
@@ -101,9 +102,8 @@ class _MasterPageState extends ConsumerState<MasterPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        Money(
-                          (row['retail_price_minor'] as int?) ?? 0,
-                        ).format(withSymbol: false),
+                        Money((row['retail_price_minor'] as int?) ?? 0)
+                            .format(withSymbol: false),
                       ),
                       PopupMenuButton<String>(
                         onSelected: (action) {
@@ -136,14 +136,19 @@ class _MasterPageState extends ConsumerState<MasterPage> {
                 trailing: PopupMenuButton<String>(
                   onSelected: (action) {
                     if (action == 'edit') _edit(row);
+                    if (action == 'statement') _showStatement(row);
                     if (action == 'archive') _archive(row);
                   },
                   itemBuilder: (_) => const [
                     PopupMenuItem(value: 'edit', child: Text('تعديل')),
+                    PopupMenuItem(
+                      value: 'statement',
+                      child: Text('كشف الحساب'),
+                    ),
                     PopupMenuItem(value: 'archive', child: Text('أرشفة')),
                   ],
                 ),
-                onTap: () => _edit(row),
+                onTap: () => _showStatement(row),
               ),
             );
           },
@@ -176,6 +181,17 @@ class _MasterPageState extends ConsumerState<MasterPage> {
             builder: (_) => _PartyDialog(type: widget.type, initial: row),
           );
     if (saved == true && mounted) setState(() {});
+  }
+
+  Future<void> _showStatement(Map<String, Object?> row) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _PartyStatementDialog(
+        partyType: widget.type == 'customers' ? 'customer' : 'supplier',
+        partyId: row['id'] as String,
+        partyName: row['name'] as String,
+      ),
+    );
   }
 
   Future<void> _archive(Map<String, Object?> row) async {
@@ -678,6 +694,240 @@ class _PartyDialogState extends ConsumerState<_PartyDialog> {
       FilledButton(
         onPressed: _saving ? null : _save,
         child: Text(context.tr('save')),
+      ),
+    ],
+  );
+}
+
+class _PartyStatementDialog extends ConsumerStatefulWidget {
+  const _PartyStatementDialog({
+    required this.partyType,
+    required this.partyId,
+    required this.partyName,
+  });
+
+  final String partyType;
+  final String partyId;
+  final String partyName;
+
+  @override
+  ConsumerState<_PartyStatementDialog> createState() =>
+      _PartyStatementDialogState();
+}
+
+class _PartyStatementDialogState extends ConsumerState<_PartyStatementDialog> {
+  DateRangeSelection _range = DateRangeSelection.resolve(
+    DateRangePreset.thisMonth,
+  );
+  String _currency = 'YER';
+  int _refresh = 0;
+
+  Future<List<Map<String, Object?>>> _statement() {
+    final repository = ref.read(reportRepositoryProvider);
+    return widget.partyType == 'customer'
+        ? repository.customerStatement(
+            customerId: widget.partyId,
+            from: _range.from,
+            to: _range.to,
+            currencyCode: _currency,
+          )
+        : repository.supplierStatement(
+            supplierId: widget.partyId,
+            from: _range.from,
+            to: _range.to,
+            currencyCode: _currency,
+          );
+  }
+
+  List<String> get _headers => const [
+    'التاريخ',
+    'المستند',
+    'النوع',
+    'مدين',
+    'دائن',
+    'الرصيد',
+  ];
+
+  List<List<String>> _asRows(List<Map<String, Object?>> data) => data
+      .map(
+        (row) => [
+          '${row['event_date']}',
+          '${row['document_no']}',
+          '${row['event_type']}',
+          '${row['debit_minor']} $_currency',
+          '${row['credit_minor']} $_currency',
+          '${row['balance_minor']} $_currency',
+        ],
+      )
+      .toList();
+
+  Future<void> _export(String type, List<Map<String, Object?>> data) async {
+    if (data.isEmpty) return;
+    final rows = _asRows(data);
+    final title =
+        'كشف حساب ${widget.partyType == 'customer' ? 'العميل' : 'المورد'} — ${widget.partyName}';
+    final period =
+        '${_range.from.toIso8601String().substring(0, 10)} — ${_range.to.toIso8601String().substring(0, 10)}';
+    final generatedBy = ref.read(sessionProvider)?.displayName ?? 'النظام';
+    final service = ref.read(reportExportServiceProvider);
+    try {
+      if (type == 'xlsx') {
+        await service.shareXlsx(
+          headers: _headers,
+          rows: rows,
+          fileName: title,
+          text: title,
+          title: title,
+          generatedBy: generatedBy,
+        );
+      } else if (type == 'pdf') {
+        await service.sharePdf(
+          title: title,
+          organizationName: 'المؤسسة',
+          headers: _headers,
+          rows: rows,
+          generatedBy: generatedBy,
+          period: period,
+          filters: 'العملة: $_currency',
+        );
+      } else {
+        await service.printReport(
+          title: title,
+          organizationName: 'المؤسسة',
+          headers: _headers,
+          rows: rows,
+          generatedBy: generatedBy,
+          period: period,
+          filters: 'العملة: $_currency',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        showAppMessage(context, 'تعذر تصدير كشف الحساب: $error', error: true);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text('كشف حساب: ${widget.partyName}'),
+    content: SizedBox(
+      width: 920,
+      height: 560,
+      child: FutureBuilder<List<List<Map<String, Object?>>>>(
+        key: ValueKey(_refresh),
+        future: Future.wait([
+          _statement(),
+          ref.read(referenceDataRepositoryProvider).list('currencies'),
+        ]),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final data = snapshot.data![0];
+          final currencies = snapshot.data![1];
+          final rows = _asRows(data);
+          return Column(
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  DateRangeFilterBar(
+                    value: _range,
+                    onChanged: (value) => setState(() {
+                      _range = value;
+                      _refresh++;
+                    }),
+                  ),
+                  SizedBox(
+                    width: 190,
+                    child: DropdownButtonFormField<String>(
+                      initialValue:
+                          currencies.any((row) => row['code'] == _currency)
+                          ? _currency
+                          : null,
+                      decoration: const InputDecoration(
+                        labelText: 'العملة',
+                        isDense: true,
+                      ),
+                      items: currencies
+                          .where(
+                            (row) =>
+                                row['active'] == 1 || row['active'] == true,
+                          )
+                          .map(
+                            (row) => DropdownMenuItem(
+                              value: row['code'] as String,
+                              child: Text('${row['code']} — ${row['name_ar']}'),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) => setState(() {
+                        _currency = value ?? 'YER';
+                        _refresh++;
+                      }),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: data.isEmpty
+                        ? null
+                        : () => _export('xlsx', data),
+                    icon: const Icon(Icons.table_view_outlined),
+                    label: const Text('Excel'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: data.isEmpty ? null : () => _export('pdf', data),
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    label: const Text('PDF'),
+                  ),
+                  FilledButton.icon(
+                    onPressed: data.isEmpty
+                        ? null
+                        : () => _export('print', data),
+                    icon: const Icon(Icons.print_outlined),
+                    label: const Text('طباعة'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: data.isEmpty
+                    ? const EmptyState(
+                        message: 'لا توجد عمليات ضمن الفلاتر المحددة.',
+                      )
+                    : SingleChildScrollView(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: DataTable(
+                            columns: _headers
+                                .map(
+                                  (header) => DataColumn(label: Text(header)),
+                                )
+                                .toList(),
+                            rows: rows
+                                .map(
+                                  (row) => DataRow(
+                                    cells: row
+                                        .map((value) => DataCell(Text(value)))
+                                        .toList(),
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('إغلاق'),
       ),
     ],
   );

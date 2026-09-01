@@ -40,8 +40,7 @@ class _StockCountsPageState extends ConsumerState<StockCountsPage> {
           children: [
             ErpPageHeader(
               title: 'الجرد والتسويات',
-              subtitle:
-                  'أنشئ جلسة جرد واحفظها كمسودة ثم اعتمد الفروقات بحركة مخزون وقيد محاسبي.',
+              subtitle: 'أنشئ جلسة جرد واحفظها كمسودة ثم اعتمد الفروقات بحركة مخزون وقيد محاسبي.',
               actions: [
                 FilledButton.icon(
                   onPressed: _createCount,
@@ -533,8 +532,7 @@ class _StockCountDetailPageState extends ConsumerState<StockCountDetailPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'اعتماد الجرد',
-      message:
-          'سيتم إنشاء تسويات مخزنية وقيود محاسبية للفروقات. لا يمكن تعديل الجرد بعد الاعتماد.',
+      message: 'سيتم إنشاء تسويات مخزنية وقيود محاسبية للفروقات. لا يمكن تعديل الجرد بعد الاعتماد.',
       confirmLabel: 'اعتماد الجرد',
     );
     if (!confirmed) return;
@@ -557,8 +555,7 @@ class _StockCountDetailPageState extends ConsumerState<StockCountDetailPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'إلغاء جلسة الجرد',
-      message:
-          'سيتم إلغاء المسودة الحالية. لا تؤثر العملية في أرصدة المخزون لأنها غير معتمدة.',
+      message: 'سيتم إلغاء المسودة الحالية. لا تؤثر العملية في أرصدة المخزون لأنها غير معتمدة.',
       confirmLabel: 'إلغاء الجلسة',
       destructive: true,
     );
@@ -604,8 +601,7 @@ class _StockTransfersPageState extends ConsumerState<StockTransfersPage> {
           children: [
             ErpPageHeader(
               title: 'تحويلات المخزون',
-              subtitle:
-                  'إرسال الأصناف من مخزن واستلامها في مخزن آخر مع حركة مخزون كاملة.',
+              subtitle: 'إرسال الأصناف من مخزن واستلامها في مخزن آخر مع حركة مخزون كاملة.',
               actions: [
                 FilledButton.icon(
                   onPressed: _createTransfer,
@@ -734,8 +730,7 @@ class _StockTransfersPageState extends ConsumerState<StockTransfersPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'إرسال التحويل',
-      message:
-          'سيُخصم رصيد الأصناف من المخزن المرسل وتصبح العملية بانتظار الاستلام.',
+      message: 'سيُخصم رصيد الأصناف من المخزن المرسل وتصبح العملية بانتظار الاستلام.',
       confirmLabel: 'إرسال',
     );
     if (!confirmed) return;
@@ -753,8 +748,7 @@ class _StockTransfersPageState extends ConsumerState<StockTransfersPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'استلام التحويل',
-      message:
-          'سيُضاف رصيد الأصناف إلى المخزن المستلم ولا يمكن التراجع مباشرة بعد الاستلام.',
+      message: 'سيُضاف رصيد الأصناف إلى المخزن المستلم ولا يمكن التراجع مباشرة بعد الاستلام.',
       confirmLabel: 'استلام',
     );
     if (!confirmed) return;

@@ -244,9 +244,9 @@ class AppScaffold extends ConsumerWidget {
                       for (final item in group.items)
                         ListTile(
                           selected: item.key == active,
-                          selectedTileColor: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer,
+                          selectedTileColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
                           leading: Icon(item.icon),
                           title: Text(context.tr(item.key)),
                           onTap: () {
@@ -266,8 +266,7 @@ class AppScaffold extends ConsumerWidget {
                   final leave = await showErpConfirmation(
                     context,
                     title: 'تسجيل الخروج',
-                    message:
-                        'هل تريد تسجيل الخروج؟ ستحتاج إلى إدخال بياناتك للوصول مجدداً.',
+                    message: 'هل تريد تسجيل الخروج؟ ستحتاج إلى إدخال بياناتك للوصول مجدداً.',
                     confirmLabel: 'تسجيل الخروج',
                   );
                   if (leave) onLogout();

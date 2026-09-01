@@ -63,8 +63,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           children: [
             ErpPageHeader(
               title: 'التقارير',
-              subtitle:
-                  'استعرض البيانات محلياً ثم اطبع PDF أو شارك ملف Excel أصلياً.',
+              subtitle: 'استعرض البيانات محلياً ثم اطبع PDF أو شارك ملف Excel أصلياً.',
               actions: [
                 OutlinedButton.icon(
                   onPressed: rows.isEmpty
@@ -280,9 +279,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           ),
           isThreeLine: true,
           trailing: Text(
-            Money(
-              row['inventory_value_minor'] as int,
-            ).format(withSymbol: false),
+            Money(row['inventory_value_minor'] as int)
+                .format(withSymbol: false),
           ),
         ),
       );

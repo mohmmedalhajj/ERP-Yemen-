@@ -62,8 +62,7 @@ class _ReturnsPageState extends ConsumerState<ReturnsPage> {
       children: [
         ErpPageHeader(
           title: _sale ? 'مرتجعات المبيعات' : 'مرتجعات المشتريات',
-          subtitle:
-              'يُنشأ المرتجع من فاتورة أصلية مرحلة فقط، ويُحدّث المخزون والصندوق والقيود تلقائياً.',
+          subtitle: 'يُنشأ المرتجع من فاتورة أصلية مرحلة فقط، ويُحدّث المخزون والصندوق والقيود تلقائياً.',
         ),
         TabBar(
           tabs: [

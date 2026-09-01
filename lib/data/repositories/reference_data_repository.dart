@@ -299,8 +299,7 @@ class ReferenceDataRepository {
     final query = switch (table) {
       'branches' =>
         'SELECT COUNT(*) AS count FROM warehouses WHERE branch_id = ?',
-      'warehouses' =>
-        'SELECT COUNT(*) AS count FROM inventory_balances WHERE warehouse_id = ?',
+      'warehouses' => 'SELECT COUNT(*) AS count FROM inventory_balances WHERE warehouse_id = ?',
       'cashboxes' =>
         'SELECT COUNT(*) AS count FROM cash_movements WHERE cashbox_id = ?',
       'currencies' =>

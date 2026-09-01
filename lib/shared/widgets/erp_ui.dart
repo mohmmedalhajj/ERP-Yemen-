@@ -220,9 +220,8 @@ class ErpStatusChip extends StatelessWidget {
     return Chip(
       avatar: Icon(Icons.circle, size: 10, color: color),
       label: Text(label),
-      labelStyle: Theme.of(
-        context,
-      ).textTheme.labelSmall?.copyWith(color: color),
+      labelStyle: Theme.of(context).textTheme.labelSmall
+          ?.copyWith(color: color),
       backgroundColor: color.withValues(alpha: .10),
       side: BorderSide.none,
       padding: const EdgeInsets.symmetric(horizontal: 4),

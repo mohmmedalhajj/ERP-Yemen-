@@ -62,8 +62,7 @@ class _ReferenceDataPageState extends ConsumerState<ReferenceDataPage> {
         children: [
           ErpPageHeader(
             title: 'البيانات المرجعية',
-            subtitle:
-                'إدارة الفروع والمخازن والعملات والضرائب والوحدات والفترات. تُحفظ التغييرات محلياً مع سجل تدقيق.',
+            subtitle: 'إدارة الفروع والمخازن والعملات والضرائب والوحدات والفترات. تُحفظ التغييرات محلياً مع سجل تدقيق.',
             actions: [
               FilledButton.icon(
                 onPressed: _add,
@@ -257,8 +256,7 @@ class _ReferenceDataPageState extends ConsumerState<ReferenceDataPage> {
     final confirmed = await showErpConfirmation(
       context,
       title: 'إقفال الفترة المالية',
-      message:
-          'سيمنع الإقفال إضافة قيود جديدة إلى هذه الفترة بعد التحقق من عدم وجود قيود مسودة. لا يمكن التراجع من هذه الشاشة.',
+      message: 'سيمنع الإقفال إضافة قيود جديدة إلى هذه الفترة بعد التحقق من عدم وجود قيود مسودة. لا يمكن التراجع من هذه الشاشة.',
       confirmLabel: 'إقفال',
     );
     if (!confirmed) return;
