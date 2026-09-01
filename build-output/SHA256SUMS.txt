@@ -1,0 +1,2 @@
+037f0f5720cf5778e30ec7bfa792e3161ec40383e4eff6f1df19036c2c308c65  build-output/integrated-erp-v1.3.0-updated.apk
+bf55d41912de8a424f1b116261ac23f28645f579bfa4b0037f5d0c44c681a13a  build-output/integrated-erp-v1.3.0-updated.aab

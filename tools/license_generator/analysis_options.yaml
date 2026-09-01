@@ -1,0 +1,7 @@
+analyzer:
+  errors:
+    avoid_print: ignore
+
+linter:
+  rules:
+    avoid_print: false

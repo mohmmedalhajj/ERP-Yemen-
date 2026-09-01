@@ -1,0 +1,58 @@
+name: integratederp
+description: نظام المبيعات والمشتريات والإدارة المتكاملة للسوق اليمني - محمد الحاج سوفت.
+publish_to: none
+version: 1.3.0+4
+
+environment:
+  sdk: ">=3.10.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.0.3
+  sqflite: ^2.4.2
+  path: ^1.9.1
+  path_provider: ^2.1.5
+  flutter_secure_storage: ^10.0.0
+  crypto: ^3.0.6
+  cryptography: ^2.7.0
+  archive: ^3.6.1
+  file_picker: ^10.3.3
+  share_plus: ^12.0.0
+  pdf: ^3.11.3
+  printing: ^5.14.2
+  csv: ^6.0.0
+  excel: ^4.0.6
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  fl_chart: ^1.1.1
+  package_info_plus: ^9.0.0
+  url_launcher: ^6.3.1
+  mobile_scanner: ^7.4.0
+  print_bluetooth_thermal: ^1.2.2
+  esc_pos_utils_plus: ^2.0.4
+  flutter_local_notifications: ^19.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/fonts/
+    - assets/images/
+  fonts:
+    - family: NotoKufiArabic
+      fonts:
+        - asset: assets/fonts/NotoKufiArabic-Regular.ttf
+        - asset: assets/fonts/NotoKufiArabic-Bold.ttf
+          weight: 700
+
+# تغيير الحزمة موثق في release/documentation/BUILD_AND_SIGNING.md.
+# لا تخزن أسرار التوقيع أو مفتاح الترخيص الخاص في هذا المشروع.
