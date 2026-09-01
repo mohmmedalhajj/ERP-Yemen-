@@ -137,16 +137,39 @@ class LicenseService {
     String? notes,
   }) async {
     if (customerName.trim().isEmpty) throw ArgumentError('اسم العميل مطلوب');
-    if (durationDays < 1) throw ArgumentError('مدة الترخيص يجب أن تكون يومًا واحدًا على الأقل');
+    if (durationDays < 1)
+      throw ArgumentError('مدة الترخيص يجب أن تكون يومًا واحدًا على الأقل');
     if (features.isEmpty) throw ArgumentError('يجب تحديد ميزة واحدة على الأقل');
     final seed = base64Decode(privateKeyBase64.trim());
-    if (seed.length != 32) throw ArgumentError('مفتاح Ed25519 الخاص يجب أن يكون Seed بطول 32 بايت بصيغة Base64');
+    if (seed.length != 32)
+      throw ArgumentError(
+        'مفتاح Ed25519 الخاص يجب أن يكون Seed بطول 32 بايت بصيغة Base64',
+      );
     final algorithm = Ed25519();
     final keyPair = await algorithm.newKeyPairFromSeed(seed);
     final publicKey = await keyPair.extractPublicKey();
     if (base64Encode(publicKey.bytes) != _compiledPublicKey) {
-      throw StateError('المفتاح الخاص لا يطابق المفتاح العام المضمّن في التطبيق');
+      throw StateError(
+        'المفتاح الخاص لا يطابق المفتاح العام المضمّن في التطبيق',
+      );
     }
+    final resolvedCustomer = await _database.raw.query(
+      'customers',
+      columns: ['id', 'name', 'phone'],
+      where: 'active = 1 AND name = ?',
+      whereArgs: [customerName.trim()],
+      limit: 1,
+    );
+    final resolvedId = customerId?.trim().isNotEmpty == true
+        ? customerId!.trim()
+        : (resolvedCustomer.isEmpty
+              ? null
+              : resolvedCustomer.first['id'] as String);
+    final resolvedPhone = phone?.trim().isNotEmpty == true
+        ? phone!.trim()
+        : (resolvedCustomer.isEmpty
+              ? null
+              : resolvedCustomer.first['phone'] as String?);
     final start = (startsAt ?? DateTime.now().toUtc()).toUtc();
     final expiry = start.add(Duration(days: durationDays));
     final payload = <String, dynamic>{
@@ -155,8 +178,10 @@ class LicenseService {
       'package_name': 'Integrated ERP Yemen',
       'license_id': const Uuid().v4(),
       'customer_name': customerName.trim(),
-      if (phone != null && phone.trim().isNotEmpty) 'phone': phone.trim(),
-      if (customerId != null && customerId.trim().isNotEmpty) 'customer_id': customerId.trim(),
+      if (resolvedPhone != null && resolvedPhone.trim().isNotEmpty)
+        'phone': resolvedPhone.trim(),
+      if (resolvedId != null && resolvedId.isNotEmpty)
+        'customer_id': resolvedId,
       'license_type': licenseType,
       'features': features,
       'starts_at': start.toIso8601String(),
@@ -176,7 +201,11 @@ class LicenseService {
       action: 'license.created',
       entityType: 'license',
       entityId: payload['license_id'] as String,
-      afterJson: jsonEncode({'customer_name': customerName.trim(), 'expires_at': payload['expires_at'], 'license_type': licenseType}),
+      afterJson: jsonEncode({
+        'customer_name': customerName.trim(),
+        'expires_at': payload['expires_at'],
+        'license_type': licenseType,
+      }),
     );
     return base64Encode(utf8.encode(jsonEncode(envelope)));
   }

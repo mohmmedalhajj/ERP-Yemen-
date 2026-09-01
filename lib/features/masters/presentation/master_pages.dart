@@ -240,6 +240,8 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
   String? _categoryId;
   String? _unitId;
   String? _taxId;
+  String _purchaseCurrencyCode = 'YER';
+  final _purchaseRate = TextEditingController(text: '1000000');
   bool _allowNegative = false;
   bool _batchEnabled = false;
   bool _expiryEnabled = false;
@@ -260,6 +262,9 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
       _categoryId = item['category_id'] as String?;
       _unitId = item['stock_unit_id'] as String?;
       _taxId = item['default_tax_id'] as String?;
+      _purchaseCurrencyCode =
+          item['purchase_currency_code'] as String? ?? 'YER';
+      _purchaseRate.text = '${item['purchase_rate_ppm'] ?? 1000000}';
       _allowNegative = item['allow_negative_stock'] == 1;
       _batchEnabled = item['batch_enabled'] == 1;
       _expiryEnabled = item['expiry_enabled'] == 1;
@@ -275,6 +280,7 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
     _reorder.dispose();
     _minimum.dispose();
     _maximum.dispose();
+    _purchaseRate.dispose();
     super.dispose();
   }
 
@@ -299,6 +305,9 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
               defaultTaxId: _taxId,
               retailPriceMinor: int.tryParse(_price.text.trim()) ?? 0,
               purchasePriceMinor: int.tryParse(_purchasePrice.text.trim()) ?? 0,
+              purchaseCurrencyCode: _purchaseCurrencyCode,
+              purchaseRatePpm:
+                  int.tryParse(_purchaseRate.text.trim()) ?? 1000000,
               reorderPointMinor: int.tryParse(_reorder.text.trim()) ?? 0,
               minStockMinor: int.tryParse(_minimum.text.trim()) ?? 0,
               maxStockMinor: _maximum.text.trim().isEmpty
@@ -332,6 +341,7 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
         ref.watch(referenceDataRepositoryProvider).list('categories'),
         ref.watch(referenceDataRepositoryProvider).list('units'),
         ref.watch(referenceDataRepositoryProvider).list('taxes'),
+        ref.watch(referenceDataRepositoryProvider).list('currencies'),
       ]),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -343,6 +353,7 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
         final categories = snapshot.data![0];
         final units = snapshot.data![1];
         final taxes = snapshot.data![2];
+        final currencies = snapshot.data![3];
         return SizedBox(
           width: 460,
           child: Form(
@@ -427,6 +438,34 @@ class _ProductDialogState extends ConsumerState<_ProductDialog> {
                     onChanged: _saving
                         ? null
                         : (value) => setState(() => _taxId = value),
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    initialValue: _purchaseCurrencyCode,
+                    decoration: const InputDecoration(labelText: 'عملة الشراء'),
+                    items: currencies
+                        .map(
+                          (row) => DropdownMenuItem(
+                            value: row['code'] as String,
+                            child: Text('${row['name_ar']} (${row['code']})'),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(
+                            () => _purchaseCurrencyCode = value ?? 'YER',
+                          ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextFormField(
+                    controller: _purchaseRate,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText:
+                          'سعر الصرف مقابل الريال اليمني (جزء من المليون)',
+                    ),
+                    validator: _nonNegative,
                   ),
                   const SizedBox(height: 10),
                   Row(

@@ -53,6 +53,3 @@ app.*.map.json
 *.keystore
 *.merp
 .env
-
-# Delivery archive (published as a GitHub Release asset)
-ERP_Yemen_v1.3.0_privacy_license_delivery_v5.zip

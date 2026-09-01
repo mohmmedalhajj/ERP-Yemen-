@@ -11,7 +11,7 @@ class ErpDatabase {
   ErpDatabase._(this._db);
 
   final Database _db;
-  static const schemaVersion = 6;
+  static const schemaVersion = 7;
   static const _uuid = Uuid();
 
   Database get raw => _db;
@@ -81,6 +81,21 @@ class ErpDatabase {
     }
     if (oldVersion < 6) {
       await _createFinancialOperationsSchema(db);
+    }
+    if (oldVersion < 7) {
+      await _addColumnIfMissing(
+        db,
+        'products',
+        'purchase_currency_code TEXT NOT NULL DEFAULT \'YER\'',
+      );
+      await _addColumnIfMissing(
+        db,
+        'products',
+        'purchase_rate_ppm INTEGER NOT NULL DEFAULT 1000000',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_products_purchase_currency ON products(purchase_currency_code)',
+      );
     }
     await _seedReferenceData(db);
   }
@@ -171,6 +186,7 @@ class ErpDatabase {
         min_stock_minor INTEGER NOT NULL DEFAULT 0, max_stock_minor INTEGER,
         allow_negative_stock INTEGER NOT NULL DEFAULT 0, batch_enabled INTEGER NOT NULL DEFAULT 0,
         expiry_enabled INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 1,
+        purchase_currency_code TEXT NOT NULL DEFAULT 'YER', purchase_rate_ppm INTEGER NOT NULL DEFAULT 1000000,
         created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
         FOREIGN KEY(category_id) REFERENCES categories(id), FOREIGN KEY(stock_unit_id) REFERENCES units(id),
         FOREIGN KEY(purchase_unit_id) REFERENCES units(id), FOREIGN KEY(sales_unit_id) REFERENCES units(id),
@@ -425,14 +441,42 @@ class ErpDatabase {
     await batch.commit(noResult: true);
   }
 
-  static Future<void> _createFinancialOperationsSchema(DatabaseExecutor db) async {
-    await db.execute('CREATE TABLE IF NOT EXISTS cost_centers (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, name_ar TEXT NOT NULL, name_en TEXT, parent_id TEXT, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, FOREIGN KEY(parent_id) REFERENCES cost_centers(id) ON DELETE RESTRICT)');
-    await db.execute('CREATE TABLE IF NOT EXISTS fixed_assets (id TEXT PRIMARY KEY, asset_no TEXT NOT NULL UNIQUE, name_ar TEXT NOT NULL, category TEXT NOT NULL, purchase_date TEXT NOT NULL, acquisition_cost_minor INTEGER NOT NULL CHECK(acquisition_cost_minor >= 0), residual_value_minor INTEGER NOT NULL DEFAULT 0, useful_life_months INTEGER NOT NULL CHECK(useful_life_months > 0), accumulated_depreciation_minor INTEGER NOT NULL DEFAULT 0, currency_code TEXT NOT NULL DEFAULT \'YER\', rate_ppm INTEGER NOT NULL DEFAULT 1000000, status TEXT NOT NULL DEFAULT \'active\', cost_center_id TEXT, account_id TEXT, created_at TEXT NOT NULL)');
-    await db.execute('CREATE TABLE IF NOT EXISTS asset_depreciation (id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, period_start TEXT NOT NULL, period_end TEXT NOT NULL, amount_minor INTEGER NOT NULL CHECK(amount_minor > 0), journal_entry_id TEXT, status TEXT NOT NULL DEFAULT \'posted\', created_at TEXT NOT NULL, UNIQUE(asset_id, period_start, period_end))');
-    await db.execute('CREATE TABLE IF NOT EXISTS cheques (id TEXT PRIMARY KEY, cheque_no TEXT NOT NULL, bank_name TEXT, party_type TEXT NOT NULL, customer_id TEXT, supplier_id TEXT, amount_minor INTEGER NOT NULL CHECK(amount_minor > 0), currency_code TEXT NOT NULL DEFAULT \'YER\', rate_ppm INTEGER NOT NULL DEFAULT 1000000, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'pending\', cashbox_id TEXT, source_id TEXT, notes TEXT, created_at TEXT NOT NULL, UNIQUE(cheque_no, bank_name))');
-    await db.execute('CREATE TABLE IF NOT EXISTS local_notifications (id TEXT PRIMARY KEY, notification_type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, scheduled_at TEXT NOT NULL, entity_type TEXT, entity_id TEXT, read_at TEXT, created_at TEXT NOT NULL)');
-    await db.execute('CREATE TABLE IF NOT EXISTS import_batches (id TEXT PRIMARY KEY, file_name TEXT NOT NULL, file_hash TEXT NOT NULL UNIQUE, entity_type TEXT NOT NULL, rows_total INTEGER NOT NULL, rows_valid INTEGER NOT NULL DEFAULT 0, rows_rejected INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT \'preview\', created_by TEXT, created_at TEXT NOT NULL)');
-    await db.execute('CREATE TABLE IF NOT EXISTS saved_filters (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, screen_key TEXT NOT NULL, name TEXT NOT NULL, filter_json TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(user_id, screen_key, name))');
+  static Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String definition,
+  ) async {
+    final column = definition.split(' ').first;
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    if (!columns.any((row) => row['name'] == column)) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $definition');
+    }
+  }
+
+  static Future<void> _createFinancialOperationsSchema(
+    DatabaseExecutor db,
+  ) async {
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS cost_centers (id TEXT PRIMARY KEY, code TEXT NOT NULL UNIQUE, name_ar TEXT NOT NULL, name_en TEXT, parent_id TEXT, active INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, FOREIGN KEY(parent_id) REFERENCES cost_centers(id) ON DELETE RESTRICT)',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS fixed_assets (id TEXT PRIMARY KEY, asset_no TEXT NOT NULL UNIQUE, name_ar TEXT NOT NULL, category TEXT NOT NULL, purchase_date TEXT NOT NULL, acquisition_cost_minor INTEGER NOT NULL CHECK(acquisition_cost_minor >= 0), residual_value_minor INTEGER NOT NULL DEFAULT 0, useful_life_months INTEGER NOT NULL CHECK(useful_life_months > 0), accumulated_depreciation_minor INTEGER NOT NULL DEFAULT 0, currency_code TEXT NOT NULL DEFAULT \'YER\', rate_ppm INTEGER NOT NULL DEFAULT 1000000, status TEXT NOT NULL DEFAULT \'active\', cost_center_id TEXT, account_id TEXT, created_at TEXT NOT NULL)',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS asset_depreciation (id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, period_start TEXT NOT NULL, period_end TEXT NOT NULL, amount_minor INTEGER NOT NULL CHECK(amount_minor > 0), journal_entry_id TEXT, status TEXT NOT NULL DEFAULT \'posted\', created_at TEXT NOT NULL, UNIQUE(asset_id, period_start, period_end))',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS cheques (id TEXT PRIMARY KEY, cheque_no TEXT NOT NULL, bank_name TEXT, party_type TEXT NOT NULL, customer_id TEXT, supplier_id TEXT, amount_minor INTEGER NOT NULL CHECK(amount_minor > 0), currency_code TEXT NOT NULL DEFAULT \'YER\', rate_ppm INTEGER NOT NULL DEFAULT 1000000, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT \'pending\', cashbox_id TEXT, source_id TEXT, notes TEXT, created_at TEXT NOT NULL, UNIQUE(cheque_no, bank_name))',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS local_notifications (id TEXT PRIMARY KEY, notification_type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, scheduled_at TEXT NOT NULL, entity_type TEXT, entity_id TEXT, read_at TEXT, created_at TEXT NOT NULL)',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS import_batches (id TEXT PRIMARY KEY, file_name TEXT NOT NULL, file_hash TEXT NOT NULL UNIQUE, entity_type TEXT NOT NULL, rows_total INTEGER NOT NULL, rows_valid INTEGER NOT NULL DEFAULT 0, rows_rejected INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT \'preview\', created_by TEXT, created_at TEXT NOT NULL)',
+    );
+    await db.execute(
+      'CREATE TABLE IF NOT EXISTS saved_filters (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, screen_key TEXT NOT NULL, name TEXT NOT NULL, filter_json TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE(user_id, screen_key, name))',
+    );
   }
 
   static Future<void> _seedReferenceData(DatabaseExecutor db) async {

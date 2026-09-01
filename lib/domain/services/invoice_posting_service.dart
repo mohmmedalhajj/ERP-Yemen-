@@ -318,11 +318,17 @@ class InvoicePostingService {
                 whereArgs: [allocation.batchId, allocation.quantityMinor],
                 limit: 1,
               );
-              if (batchRows.isEmpty) throw StateError('تغيرت كمية الدفعة أثناء الترحيل');
-              final remainingBatch = (batchRows.first['quantity_minor'] as int) - allocation.quantityMinor;
+              if (batchRows.isEmpty)
+                throw StateError('تغيرت كمية الدفعة أثناء الترحيل');
+              final remainingBatch =
+                  (batchRows.first['quantity_minor'] as int) -
+                  allocation.quantityMinor;
               await txn.update(
                 'stock_batches',
-                {'quantity_minor': remainingBatch, 'active': remainingBatch > 0 ? 1 : 0},
+                {
+                  'quantity_minor': remainingBatch,
+                  'active': remainingBatch > 0 ? 1 : 0,
+                },
                 where: 'id = ?',
                 whereArgs: [allocation.batchId],
               );
@@ -557,7 +563,8 @@ class InvoicePostingService {
               'quantity_minor': oldQty + line.stockQuantityMinor,
               'unit_cost_minor': batchCost,
               'active': 1,
-              if (line.productionDate != null) 'production_date': line.productionDate,
+              if (line.productionDate != null)
+                'production_date': line.productionDate,
               if (line.expiryDate != null) 'expiry_date': line.expiryDate,
             },
             where: 'id = ?',
@@ -873,7 +880,11 @@ class _BatchAllocation {
 }
 
 class _BatchAllocationResult {
-  const _BatchAllocationResult({required this.allocations, required this.costMinor, required this.unitCostMinor});
+  const _BatchAllocationResult({
+    required this.allocations,
+    required this.costMinor,
+    required this.unitCostMinor,
+  });
   final List<_BatchAllocation> allocations;
   final int costMinor;
   final int unitCostMinor;

@@ -90,23 +90,42 @@ void main() {
 
     test('يحسب اليوم والأمس بصيغة تاريخ ثابتة', () {
       expect(DateRangeSelection.today(now).fromIso, '2026-09-01');
-      expect(DateRangeSelection.resolve(DateRangePreset.yesterday, now: now).fromIso, '2026-08-31');
+      expect(
+        DateRangeSelection.resolve(DateRangePreset.yesterday, now: now).fromIso,
+        '2026-08-31',
+      );
     });
 
     test('يحسب بداية ونهاية الأسبوع والشهر والسنة', () {
-      final week = DateRangeSelection.resolve(DateRangePreset.thisWeek, now: now);
+      final week = DateRangeSelection.resolve(
+        DateRangePreset.thisWeek,
+        now: now,
+      );
       expect(week.fromIso, '2026-08-31');
       expect(week.toIso, '2026-09-06');
-      final month = DateRangeSelection.resolve(DateRangePreset.thisMonth, now: now);
+      final month = DateRangeSelection.resolve(
+        DateRangePreset.thisMonth,
+        now: now,
+      );
       expect(month.fromIso, '2026-09-01');
       expect(month.toIso, '2026-09-30');
-      final year = DateRangeSelection.resolve(DateRangePreset.thisYear, now: now);
+      final year = DateRangeSelection.resolve(
+        DateRangePreset.thisYear,
+        now: now,
+      );
       expect(year.fromIso, '2026-01-01');
       expect(year.toIso, '2026-12-31');
     });
 
     test('يرفض فترة مخصصة معكوسة', () {
-      expect(() => DateRangeSelection.resolve(DateRangePreset.custom, customFrom: DateTime(2026, 9, 2), customTo: DateTime(2026, 9, 1)), throwsArgumentError);
+      expect(
+        () => DateRangeSelection.resolve(
+          DateRangePreset.custom,
+          customFrom: DateTime(2026, 9, 2),
+          customTo: DateTime(2026, 9, 1),
+        ),
+        throwsArgumentError,
+      );
     });
   });
 

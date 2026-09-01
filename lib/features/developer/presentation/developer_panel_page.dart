@@ -54,6 +54,7 @@ class _DeveloperPanelPageState extends ConsumerState<DeveloperPanelPage> {
     final duration = TextEditingController(text: '365');
     final privateKey = TextEditingController();
     final notes = TextEditingController();
+    final database = ref.read(databaseProvider);
     var busy = false;
     String? generated;
     await showDialog<void>(
@@ -69,51 +70,144 @@ class _DeveloperPanelPageState extends ConsumerState<DeveloperPanelPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (generated == null) ...[
-                    TextField(controller: customer, decoration: const InputDecoration(labelText: 'اسم العميل *')),
+                    TextField(
+                      controller: customer,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم العميل *',
+                        helperText:
+                            'اكتب الاسم المطابق في إدارة العملاء لجلب المعرّف تلقائيًا',
+                      ),
+                      onChanged: (value) async {
+                        final name = value.trim();
+                        if (name.isEmpty) {
+                          customerId.clear();
+                          return;
+                        }
+                        final rows = await database.raw.query(
+                          'customers',
+                          columns: ['id', 'phone'],
+                          where: 'active = 1 AND name = ?',
+                          whereArgs: [name],
+                          limit: 1,
+                        );
+                        if (rows.isNotEmpty) {
+                          customerId.text = rows.first['id'] as String;
+                          if (phone.text.trim().isEmpty &&
+                              rows.first['phone'] != null)
+                            phone.text = rows.first['phone'] as String;
+                        } else {
+                          customerId.clear();
+                        }
+                        setState(() {});
+                      },
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: phone, decoration: const InputDecoration(labelText: 'رقم الهاتف')),
+                    TextField(
+                      controller: phone,
+                      decoration: const InputDecoration(
+                        labelText: 'رقم الهاتف',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: customerId, decoration: const InputDecoration(labelText: 'معرف العميل')),
+                    TextField(
+                      controller: customerId,
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'معرف العميل (يُجلب تلقائيًا)',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: duration, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'مدة الترخيص بالأيام *')),
+                    TextField(
+                      controller: duration,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'مدة الترخيص بالأيام *',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: privateKey, obscureText: true, autocorrect: false, enableSuggestions: false, decoration: const InputDecoration(labelText: 'مفتاح Ed25519 الخاص (Base64) *', helperText: 'يُستخدم في الذاكرة فقط ولا يُحفظ داخل التطبيق')),
+                    TextField(
+                      controller: privateKey,
+                      obscureText: true,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      decoration: const InputDecoration(
+                        labelText: 'مفتاح Ed25519 الخاص (Base64) *',
+                        helperText:
+                            'يُستخدم في الذاكرة فقط ولا يُحفظ داخل التطبيق',
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    TextField(controller: notes, maxLines: 2, decoration: const InputDecoration(labelText: 'ملاحظات')),
+                    TextField(
+                      controller: notes,
+                      maxLines: 2,
+                      decoration: const InputDecoration(labelText: 'ملاحظات'),
+                    ),
                   ] else ...[
-                    const Text('تم إنشاء كود موقّع. انسخه أو شاركه مع المستخدم.'),
+                    const Text(
+                      'تم إنشاء كود موقّع. انسخه أو شاركه مع المستخدم.',
+                    ),
                     const SizedBox(height: 12),
-                    SelectableText(generated!, style: const TextStyle(fontSize: 12)),
+                    SelectableText(
+                      generated!,
+                      style: const TextStyle(fontSize: 12),
+                    ),
                   ],
                 ],
               ),
             ),
           ),
           actions: [
-            TextButton(onPressed: busy ? null : () => Navigator.pop(dialogContext), child: const Text('إغلاق')),
+            TextButton(
+              onPressed: busy ? null : () => Navigator.pop(dialogContext),
+              child: const Text('إغلاق'),
+            ),
             if (generated != null) ...[
-              OutlinedButton.icon(onPressed: () async { await Clipboard.setData(ClipboardData(text: generated!)); if (dialogContext.mounted) showAppMessage(dialogContext, 'تم نسخ كود الترخيص.'); }, icon: const Icon(Icons.copy_outlined), label: const Text('نسخ')),
-              FilledButton.icon(onPressed: () => SharePlus.instance.share(ShareParams(text: generated!, subject: 'كود تفعيل ERP Yemen')), icon: const Icon(Icons.share_outlined), label: const Text('مشاركة')),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await Clipboard.setData(ClipboardData(text: generated!));
+                  if (dialogContext.mounted)
+                    showAppMessage(dialogContext, 'تم نسخ كود الترخيص.');
+                },
+                icon: const Icon(Icons.copy_outlined),
+                label: const Text('نسخ'),
+              ),
+              FilledButton.icon(
+                onPressed: () => SharePlus.instance.share(
+                  ShareParams(text: generated!, subject: 'كود تفعيل ERP Yemen'),
+                ),
+                icon: const Icon(Icons.share_outlined),
+                label: const Text('مشاركة'),
+              ),
             ] else
               FilledButton(
-                onPressed: busy ? null : () async {
-                  setState(() => busy = true);
-                  try {
-                    generated = await ref.read(licenseServiceProvider).createLicenseCode(
-                      privateKeyBase64: privateKey.text,
-                      customerName: customer.text,
-                      phone: phone.text,
-                      customerId: customerId.text,
-                      durationDays: int.parse(duration.text),
-                      notes: notes.text,
-                    );
-                    setState(() {});
-                  } catch (error) {
-                    if (dialogContext.mounted) showAppMessage(dialogContext, error.toString().replaceFirst('Bad state: ', ''), error: true);
-                  } finally {
-                    if (dialogContext.mounted) setState(() => busy = false);
-                  }
-                },
+                onPressed: busy
+                    ? null
+                    : () async {
+                        setState(() => busy = true);
+                        try {
+                          generated = await ref
+                              .read(licenseServiceProvider)
+                              .createLicenseCode(
+                                privateKeyBase64: privateKey.text,
+                                customerName: customer.text,
+                                phone: phone.text,
+                                customerId: customerId.text,
+                                durationDays: int.parse(duration.text),
+                                notes: notes.text,
+                              );
+                          setState(() {});
+                        } catch (error) {
+                          if (dialogContext.mounted)
+                            showAppMessage(
+                              dialogContext,
+                              error.toString().replaceFirst('Bad state: ', ''),
+                              error: true,
+                            );
+                        } finally {
+                          if (dialogContext.mounted)
+                            setState(() => busy = false);
+                        }
+                      },
                 child: Text(busy ? 'جارٍ الإنشاء...' : 'إنشاء كود موقّع'),
               ),
           ],
@@ -418,10 +512,7 @@ class _DeveloperPanelPageState extends ConsumerState<DeveloperPanelPage> {
 }
 
 class _DeveloperPanelData {
-  const _DeveloperPanelData({
-    required this.status,
-    required this.auditRows,
-  });
+  const _DeveloperPanelData({required this.status, required this.auditRows});
 
   final LicenseStatus status;
   final List<Map<String, Object?>> auditRows;

@@ -102,7 +102,10 @@ class AppScaffold extends ConsumerWidget {
         content: SizedBox(
           width: 460,
           child: rows.isEmpty
-              ? const Padding(padding: EdgeInsets.all(16), child: Text('لا توجد تنبيهات جديدة.'))
+              ? const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('لا توجد تنبيهات جديدة.'),
+                )
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: rows.length,
@@ -110,7 +113,11 @@ class AppScaffold extends ConsumerWidget {
                   itemBuilder: (_, index) {
                     final row = rows[index];
                     return ListTile(
-                      leading: Icon(row['notification_type'] == 'expiry' ? Icons.event_busy_outlined : Icons.inventory_2_outlined),
+                      leading: Icon(
+                        row['notification_type'] == 'expiry'
+                            ? Icons.event_busy_outlined
+                            : Icons.inventory_2_outlined,
+                      ),
                       title: Text(row['title'] as String),
                       subtitle: Text(row['body'] as String),
                       onTap: () {
@@ -121,7 +128,12 @@ class AppScaffold extends ConsumerWidget {
                   },
                 ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إغلاق'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إغلاق'),
+          ),
+        ],
       ),
     );
   }

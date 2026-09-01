@@ -950,7 +950,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
   Future<void> _supportDialog() async {
     if (!mounted) return;
     const number = '+967780961823';
-    const message = 'طلب دعم ERP — أحتاج مساعدة في استخدام النظام أو تفعيل الترخيص.';
+    const message =
+        'طلب دعم ERP — أحتاج مساعدة في استخدام النظام أو تفعيل الترخيص.';
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(

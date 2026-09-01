@@ -128,14 +128,22 @@ class BackupService {
   }
 
   Future<int> pruneOldBackups({int keep = 7}) async {
-    if (keep < 1) throw ArgumentError('عدد النسخ المحتفظ بها يجب أن يكون موجباً');
-    final rows = await _database.raw.query('backup_records', orderBy: 'created_at DESC');
+    if (keep < 1)
+      throw ArgumentError('عدد النسخ المحتفظ بها يجب أن يكون موجباً');
+    final rows = await _database.raw.query(
+      'backup_records',
+      orderBy: 'created_at DESC',
+    );
     var removed = 0;
     for (final row in rows.skip(keep)) {
       final path = row['local_path'] as String;
       final file = File(path);
       if (await file.exists()) await file.delete();
-      await _database.raw.delete('backup_records', where: 'id = ?', whereArgs: [row['id']]);
+      await _database.raw.delete(
+        'backup_records',
+        where: 'id = ?',
+        whereArgs: [row['id']],
+      );
       removed++;
     }
     return removed;

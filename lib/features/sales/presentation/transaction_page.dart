@@ -109,14 +109,37 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: DropdownButtonFormField<String>(
                 initialValue: _currencyCode,
-                decoration: const InputDecoration(labelText: 'عملة العملية', prefixIcon: Icon(Icons.currency_exchange)),
-                items: currencies.where((item) => item['active'] == 1 || item['active'] == true).map((item) => DropdownMenuItem(value: item['code'] as String, child: Text('${item['code']} — ${item['name_ar']}'))).toList(),
+                decoration: const InputDecoration(
+                  labelText: 'عملة العملية',
+                  prefixIcon: Icon(Icons.currency_exchange),
+                ),
+                items: currencies
+                    .where(
+                      (item) => item['active'] == 1 || item['active'] == true,
+                    )
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item['code'] as String,
+                        child: Text('${item['code']} — ${item['name_ar']}'),
+                      ),
+                    )
+                    .toList(),
                 onChanged: (value) {
                   if (value == null) return;
-                  final row = currencies.firstWhere((item) => item['code'] == value, orElse: () => {'code': value, 'rate_ppm': value == 'YER' ? 1000000 : null});
+                  final row = currencies.firstWhere(
+                    (item) => item['code'] == value,
+                    orElse: () => {
+                      'code': value,
+                      'rate_ppm': value == 'YER' ? 1000000 : null,
+                    },
+                  );
                   final rate = row['rate_ppm'];
                   if (rate is! int || rate <= 0) {
-                    showAppMessage(context, 'لا يوجد سعر صرف محفوظ لهذه العملة.', error: true);
+                    showAppMessage(
+                      context,
+                      'لا يوجد سعر صرف محفوظ لهذه العملة.',
+                      error: true,
+                    );
                     return;
                   }
                   setState(() {
@@ -272,7 +295,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
                   keyboardType: TextInputType.number,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    labelText: '${_isSale ? context.tr('price') : 'تكلفة الوحدة'} ($_currencyCode)',
+                    labelText:
+                        '${_isSale ? context.tr('price') : 'تكلفة الوحدة'} ($_currencyCode)',
                   ),
                 ),
               ),
@@ -287,6 +311,33 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
 
   void _addProduct(Map<String, Object?> product) {
     if (_lines.any((line) => line.productId == product['id'])) return;
+    final productCurrency =
+        (product['purchase_currency_code'] as String? ?? 'YER').toUpperCase();
+    final productRate =
+        (product['purchase_rate_ppm'] as num?)?.toInt() ?? 1000000;
+    if (!_isSale) {
+      if (productRate <= 0) {
+        showAppMessage(
+          context,
+          'سعر صرف عملة شراء المنتج غير صالح.',
+          error: true,
+        );
+        return;
+      }
+      if (_lines.isEmpty && productCurrency != _currencyCode) {
+        setState(() {
+          _currencyCode = productCurrency;
+          _ratePpm = productRate;
+        });
+      } else if (_lines.isNotEmpty && productCurrency != _currencyCode) {
+        showAppMessage(
+          context,
+          'لا يمكن خلط عملات مختلفة في فاتورة شراء واحدة.',
+          error: true,
+        );
+        return;
+      }
+    }
     final price = _isSale
         ? (product['retail_price_minor'] as int? ?? 0)
         : (product['purchase_price_minor'] as int? ?? 0);
@@ -307,10 +358,16 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       MaterialPageRoute(builder: (_) => const BarcodeScannerPage()),
     );
     if (!mounted || barcode == null) return;
-    final product = await ref.read(masterRepositoryProvider).productByBarcode(barcode);
+    final product = await ref
+        .read(masterRepositoryProvider)
+        .productByBarcode(barcode);
     if (!mounted) return;
     if (product == null) {
-      showAppMessage(context, 'لم يتم العثور على صنف بهذا الباركود.', error: true);
+      showAppMessage(
+        context,
+        'لم يتم العثور على صنف بهذا الباركود.',
+        error: true,
+      );
       return;
     }
     if (_lines.any((line) => line.productId == product['id'])) {
@@ -458,7 +515,10 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
     }
   }
 
-  Future<void> _bluetoothOutput(Map<String, Object?> row, int millimeters) async {
+  Future<void> _bluetoothOutput(
+    Map<String, Object?> row,
+    int millimeters,
+  ) async {
     try {
       final service = ThermalPrinterService();
       final devices = await service.discover();
@@ -467,7 +527,11 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         return;
       }
       if (devices.isEmpty) {
-        showAppMessage(context, 'لم يتم العثور على طابعة Bluetooth.', error: true);
+        showAppMessage(
+          context,
+          'لم يتم العثور على طابعة Bluetooth.',
+          error: true,
+        );
         await service.dispose();
         return;
       }
@@ -494,16 +558,24 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
         return;
       }
       final table = _isSale ? 'sales_lines' : 'purchase_lines';
-      final lines = await ref.read(databaseProvider).raw.rawQuery(
-        '''SELECT p.name_ar, l.quantity_minor, l.line_total_minor FROM $table l JOIN products p ON p.id = l.product_id WHERE l.invoice_id = ? ORDER BY l.id''',
-        [row['id']],
-      );
+      final lines = await ref
+          .read(databaseProvider)
+          .raw
+          .rawQuery(
+            '''SELECT p.name_ar, l.quantity_minor, l.line_total_minor FROM $table l JOIN products p ON p.id = l.product_id WHERE l.invoice_id = ? ORDER BY l.id''',
+            [row['id']],
+          );
       await service.printReceipt(
         device: device,
-        title: '${_isSale ? 'فاتورة بيع' : 'فاتورة شراء'} — ${row['invoice_no']}',
+        title:
+            '${_isSale ? 'فاتورة بيع' : 'فاتورة شراء'} — ${row['invoice_no']}',
         lines: [
           for (final line in lines)
-            (name: line['name_ar'] as String, quantity: '${line['quantity_minor']}', total: '${line['line_total_minor']}'),
+            (
+              name: line['name_ar'] as String,
+              quantity: '${line['quantity_minor']}',
+              total: '${line['line_total_minor']}',
+            ),
         ],
         total: '${row['total_minor']}',
         millimeters: millimeters,
@@ -512,7 +584,8 @@ class _TransactionPageState extends ConsumerState<TransactionPage> {
       if (mounted) showAppMessage(context, 'تم إرسال الفاتورة إلى الطابعة.');
       await service.dispose();
     } catch (error) {
-      if (mounted) showAppMessage(context, 'تعذرت الطباعة الحرارية: $error', error: true);
+      if (mounted)
+        showAppMessage(context, 'تعذرت الطباعة الحرارية: $error', error: true);
     }
   }
 

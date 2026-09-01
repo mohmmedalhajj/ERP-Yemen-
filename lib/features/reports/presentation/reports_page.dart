@@ -16,14 +16,39 @@ class ReportsPage extends ConsumerStatefulWidget {
 class _ReportsPageState extends ConsumerState<ReportsPage> {
   String _type = 'sales';
   String _currency = 'YER';
-  DateRangeSelection _range = DateRangeSelection.resolve(DateRangePreset.thisMonth);
+  String? _partyId;
+  DateRangeSelection _range = DateRangeSelection.resolve(
+    DateRangePreset.thisMonth,
+  );
   int _refresh = 0;
 
   @override
   Widget build(BuildContext context) {
     final repository = ref.watch(reportRepositoryProvider);
     final future = switch (_type) {
-      'sales' => repository.salesReport(from: _range.from, to: _range.to, currencyCode: _currency),
+      'sales' => repository.salesReport(
+        from: _range.from,
+        to: _range.to,
+        currencyCode: _currency,
+      ),
+      'customer_statement' =>
+        _partyId == null
+            ? Future.value(const <Map<String, Object?>>[])
+            : repository.customerStatement(
+                customerId: _partyId!,
+                from: _range.from,
+                to: _range.to,
+                currencyCode: _currency,
+              ),
+      'supplier_statement' =>
+        _partyId == null
+            ? Future.value(const <Map<String, Object?>>[])
+            : repository.supplierStatement(
+                supplierId: _partyId!,
+                from: _range.from,
+                to: _range.to,
+                currencyCode: _currency,
+              ),
       'inventory' => repository.inventoryReport(),
       'trial' => repository.trialBalance(),
       _ => repository.auditLog(),
@@ -71,20 +96,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 runSpacing: 8,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  DateRangeFilterBar(value: _range, onChanged: (value) => setState(() => _range = value)),
-                  SizedBox(
-                    width: 132,
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _currency,
-                      decoration: const InputDecoration(labelText: 'العملة', isDense: true),
-                      items: const [
-                        DropdownMenuItem(value: 'YER', child: Text('ر. ي')),
-                        DropdownMenuItem(value: 'SAR', child: Text('ر. س')),
-                        DropdownMenuItem(value: 'USD', child: Text('USD')),
-                      ],
-                      onChanged: (value) => setState(() => _currency = value ?? 'YER'),
-                    ),
+                  DateRangeFilterBar(
+                    value: _range,
+                    onChanged: (value) => setState(() => _range = value),
                   ),
+                  _currencySelector(),
+                  if (_type == 'customer_statement' ||
+                      _type == 'supplier_statement')
+                    _partySelector(),
                 ],
               ),
             ),
@@ -94,6 +113,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               child: Row(
                 children: [
                   _chip('sales', 'المبيعات'),
+                  _chip('customer_statement', 'كشف حساب عميل'),
+                  _chip('supplier_statement', 'كشف حساب مورد'),
                   _chip('inventory', 'المخزون'),
                   _chip('trial', 'ميزان المراجعة'),
                   _chip('audit', 'سجل التدقيق'),
@@ -160,9 +181,79 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     child: ChoiceChip(
       label: Text(label),
       selected: _type == type,
-      onSelected: (_) => setState(() => _type = type),
+      onSelected: (_) => setState(() {
+        _type = type;
+        if (type != 'customer_statement' && type != 'supplier_statement')
+          _partyId = null;
+      }),
     ),
   );
+
+  Widget _currencySelector() {
+    return FutureBuilder<List<Map<String, Object?>>>(
+      future: ref.read(referenceDataRepositoryProvider).list('currencies'),
+      builder: (context, snapshot) {
+        final rows = (snapshot.data ?? const <Map<String, Object?>>[])
+            .where((row) => row['active'] == 1 || row['active'] == true)
+            .toList();
+        final selected = rows.any((row) => row['code'] == _currency)
+            ? _currency
+            : null;
+        return SizedBox(
+          width: 180,
+          child: DropdownButtonFormField<String>(
+            initialValue: selected,
+            decoration: const InputDecoration(
+              labelText: 'العملة',
+              isDense: true,
+            ),
+            items: rows
+                .map(
+                  (row) => DropdownMenuItem(
+                    value: row['code'] as String,
+                    child: Text('${row['code']} — ${row['name_ar']}'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => _currency = value ?? 'YER'),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _partySelector() {
+    final future = _type == 'customer_statement'
+        ? ref.read(masterRepositoryProvider).customers()
+        : ref.read(masterRepositoryProvider).suppliers();
+    return FutureBuilder<List<Map<String, Object?>>>(
+      future: future,
+      builder: (context, snapshot) {
+        final rows = snapshot.data ?? const <Map<String, Object?>>[];
+        return SizedBox(
+          width: 260,
+          child: DropdownButtonFormField<String>(
+            initialValue: rows.any((row) => row['id'] == _partyId)
+                ? _partyId
+                : null,
+            decoration: InputDecoration(
+              labelText: _type == 'customer_statement' ? 'العميل' : 'المورد',
+              isDense: true,
+            ),
+            items: rows
+                .map(
+                  (row) => DropdownMenuItem(
+                    value: row['id'] as String,
+                    child: Text('${row['name']} (${row['code']})'),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => _partyId = value),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _rowCard(Map<String, Object?> row) {
     if (_type == 'sales') {
@@ -220,6 +311,24 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   }
 
   _ReportDefinition _definition(List<Map<String, Object?>> data) {
+    if (_type == 'customer_statement' || _type == 'supplier_statement') {
+      return _ReportDefinition(
+        _type == 'customer_statement' ? 'كشف حساب عميل' : 'كشف حساب مورد',
+        const ['التاريخ', 'المستند', 'النوع', 'مدين', 'دائن', 'الرصيد'],
+        data
+            .map(
+              (row) => [
+                '${row['event_date']}',
+                '${row['document_no']}',
+                '${row['event_type']}',
+                '${row['debit_minor']} ${row['currency_code']}',
+                '${row['credit_minor']} ${row['currency_code']}',
+                '${row['balance_minor']} ${row['currency_code']}',
+              ],
+            )
+            .toList(),
+      );
+    }
     if (_type == 'sales') {
       return _ReportDefinition(
         'تقرير المبيعات',
@@ -329,6 +438,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           headers: definition.headers,
           rows: definition.rows,
           generatedBy: user?.displayName ?? 'النظام',
+          period:
+              '${_range.from.toIso8601String().substring(0, 10)} — ${_range.to.toIso8601String().substring(0, 10)}',
+          filters:
+              'العملة: $_currency${_partyId == null ? '' : ' • الطرف: $_partyId'}',
         );
       } else {
         await service.printReport(
@@ -337,6 +450,10 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           headers: definition.headers,
           rows: definition.rows,
           generatedBy: user?.displayName ?? 'النظام',
+          period:
+              '${_range.from.toIso8601String().substring(0, 10)} — ${_range.to.toIso8601String().substring(0, 10)}',
+          filters:
+              'العملة: $_currency${_partyId == null ? '' : ' • الطرف: $_partyId'}',
         );
       }
     } catch (error) {

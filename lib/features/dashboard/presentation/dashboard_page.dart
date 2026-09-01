@@ -23,7 +23,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) => FutureBuilder<DashboardMetrics>(
-    future: ref.watch(reportRepositoryProvider).dashboard(DateTime.now(), from: _range.from, to: _range.to, currencyCode: _currency),
+    future: ref
+        .watch(reportRepositoryProvider)
+        .dashboard(
+          DateTime.now(),
+          from: _range.from,
+          to: _range.to,
+          currencyCode: _currency,
+        ),
     builder: (context, snapshot) {
       if (snapshot.connectionState != ConnectionState.done)
         return const Center(child: CircularProgressIndicator());
@@ -107,18 +114,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                DateRangeFilterBar(value: _range, onChanged: (value) => setState(() => _range = value)),
+                DateRangeFilterBar(
+                  value: _range,
+                  onChanged: (value) => setState(() => _range = value),
+                ),
                 SizedBox(
                   width: 132,
                   child: DropdownButtonFormField<String>(
                     initialValue: _currency,
-                    decoration: const InputDecoration(labelText: 'العملة', isDense: true),
+                    decoration: const InputDecoration(
+                      labelText: 'العملة',
+                      isDense: true,
+                    ),
                     items: const [
                       DropdownMenuItem(value: 'YER', child: Text('ر. ي')),
                       DropdownMenuItem(value: 'SAR', child: Text('ر. س')),
                       DropdownMenuItem(value: 'USD', child: Text('USD')),
                     ],
-                    onChanged: (value) => setState(() => _currency = value ?? 'YER'),
+                    onChanged: (value) =>
+                        setState(() => _currency = value ?? 'YER'),
                   ),
                 ),
               ],

@@ -23,6 +23,8 @@ class ProductInput {
     this.expiryEnabled = false,
     this.retailPriceMinor,
     this.purchasePriceMinor,
+    this.purchaseCurrencyCode = 'YER',
+    this.purchaseRatePpm = 1000000,
   });
 
   final String? id;
@@ -44,6 +46,8 @@ class ProductInput {
   final bool expiryEnabled;
   final int? retailPriceMinor;
   final int? purchasePriceMinor;
+  final String purchaseCurrencyCode;
+  final int purchaseRatePpm;
 }
 
 class PartyInput {
@@ -84,7 +88,8 @@ class MasterRepository {
       '''SELECT p.*, c.name_ar AS category_name, u.name_ar AS unit_name,
           COALESCE(SUM(ib.quantity_minor), 0) AS stock_quantity_minor,
           MAX(pu.retail_price_minor) AS retail_price_minor,
-          MAX(pu.purchase_price_minor) AS purchase_price_minor
+          MAX(pu.purchase_price_minor) AS purchase_price_minor,
+          p.purchase_currency_code, p.purchase_rate_ppm
        FROM products p
        LEFT JOIN categories c ON c.id = p.category_id
        LEFT JOIN units u ON u.id = p.stock_unit_id
@@ -103,7 +108,8 @@ class MasterRepository {
       '''SELECT p.*, u.name_ar AS unit_name,
           COALESCE(SUM(ib.quantity_minor), 0) AS stock_quantity_minor,
           MAX(pu.retail_price_minor) AS retail_price_minor,
-          MAX(pu.purchase_price_minor) AS purchase_price_minor
+          MAX(pu.purchase_price_minor) AS purchase_price_minor,
+          p.purchase_currency_code, p.purchase_rate_ppm
        FROM products p
        LEFT JOIN units u ON u.id = p.stock_unit_id
        LEFT JOIN product_units pu ON pu.product_id = p.id AND pu.unit_id = p.stock_unit_id
@@ -137,6 +143,9 @@ class MasterRepository {
       throw ArgumentError('اسم الصنف والرمز مطلوبان');
     if (!const {'stock', 'service', 'non_stock'}.contains(input.productType)) {
       throw ArgumentError('نوع الصنف غير صالح');
+    }
+    if (input.purchaseRatePpm <= 0) {
+      throw ArgumentError('سعر صرف عملة الشراء يجب أن يكون أكبر من صفر');
     }
     if (input.reorderPointMinor < 0 ||
         input.minStockMinor < 0 ||
@@ -175,6 +184,10 @@ class MasterRepository {
         'allow_negative_stock': input.allowNegativeStock ? 1 : 0,
         'batch_enabled': input.batchEnabled ? 1 : 0,
         'expiry_enabled': input.expiryEnabled ? 1 : 0,
+        'purchase_currency_code': input.purchaseCurrencyCode
+            .trim()
+            .toUpperCase(),
+        'purchase_rate_ppm': input.purchaseRatePpm,
         'active': 1,
         'updated_at': now,
       };
